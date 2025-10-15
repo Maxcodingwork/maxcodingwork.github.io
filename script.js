@@ -175,7 +175,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-
 // ==================== 彈窗功能 ====================
 
 // 初始化彈窗
@@ -183,6 +182,15 @@ function initPopup() {
     // 檢查是否已經顯示過彈窗（使用localStorage記錄）
     const popupShownToday = localStorage.getItem('popupShownToday');
     const today = new Date().toDateString();
+    
+    // 添加調試信息
+    console.log('彈窗初始化檢查:', {
+        popupShownToday,
+        today,
+        shouldShow: popupShownToday !== today,
+        sdkStatus: typeof sdk,
+        resourceId
+    });
     
     if (popupShownToday !== today) {
         // 延遲2秒後顯示彈窗，讓頁面完全載入
@@ -195,49 +203,86 @@ function initPopup() {
 // 通過SDK載入彈窗內容
 function loadPopupContent() {
     try {
+        console.log('開始請求彈窗資源，resourceId:', resourceId);
+        
         // 根據文檔3.2節，使用正確的SDK調用方式
-        sdk.getResourceList(resourceId, {
-            // 請求參數
+        // 檢查SDK是否已初始化
+        if (!sdk || typeof sdk.getResource !== 'function') {
+            console.error('SDK未正確初始化或getResource方法不存在');
+            showDefaultPopup();
+            return;
+        }
+        
+        // 構建請求參數，根據文檔3.1的數據結構
+        const requestParams = {
+            resource_id: resourceId,
             position: 'popup',
             page: 'homepage',
-            userAgent: navigator.userAgent,
-            screenWidth: window.screen.width,
-            screenHeight: window.screen.height,
-            timestamp: Date.now()
-        }).then(response => {
+            user_agent: navigator.userAgent,
+            screen_width: window.screen.width,
+            screen_height: window.screen.height,
+            timestamp: Date.now(),
+            // 添加更多必要的參數
+            device_type: 'web',
+            platform: 'browser',
+            version: '1.0.0'
+        };
+        
+        console.log('SDK請求參數:', requestParams);
+        
+        sdk.getResource(resourceId, requestParams).then(response => {
             console.log('SDK彈窗響應:', response);
             
-            // 根據文檔3.2節的響應結構處理
-            if (response && response.success && response.data) {
-                popupData = response.data;
-                
-                // 記錄彈窗曝光事件
-                window.collectEvent('popup_exposure', {
-                    resource_id: resourceId,
-                    popup_type: 'sdk_popup',
-                    timestamp: Date.now(),
-                    response_data: response.data
-                });
-                
-                // 執行自渲染
-                renderPopupContent(popupData);
-                showPopup();
-                
-            } else if (response && response.success === false) {
-                console.warn('SDK返回失敗狀態:', response.message);
-                showDefaultPopup();
+            // 根據文檔3.1的數據結構處理響應
+            if (response) {
+                // 檢查響應結構
+                if (response.code === 0 || response.success === true) {
+                    // 成功響應
+                    const data = response.data || response.result;
+                    
+                    if (data && (data.image_url || data.html_content || data.content)) {
+                        popupData = data;
+                        
+                        // 記錄彈窗曝光事件
+                        window.collectEvent('popup_exposure', {
+                            resource_id: resourceId,
+                            popup_type: 'sdk_popup',
+                            timestamp: Date.now(),
+                            response_code: response.code || 0
+                        });
+                        
+                        // 執行自渲染
+                        renderPopupContent(popupData);
+                        showPopup();
+                    } else {
+                        console.warn('SDK返回的數據格式不正確:', data);
+                        showDefaultPopup();
+                    }
+                } else {
+                    // 失敗響應
+                    console.warn('SDK返回失敗狀態:', response.message || response.msg);
+                    showDefaultPopup();
+                }
             } else {
-                // 如果SDK沒有返回內容，使用預設彈窗
+                console.warn('SDK返回空響應');
                 showDefaultPopup();
             }
         }).catch(error => {
             console.error('SDK彈窗請求失敗:', error);
+            console.error('錯誤詳情:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
+            
             // 記錄錯誤事件
             window.collectEvent('popup_error', {
                 resource_id: resourceId,
                 error_message: error.message,
+                error_type: error.name,
                 timestamp: Date.now()
             });
+            
             // 請求失敗時顯示預設彈窗
             showDefaultPopup();
         });
@@ -251,41 +296,219 @@ function loadPopupContent() {
 function renderPopupContent(data) {
     if (!data || !popupContent) return;
     
+    console.log('開始渲染彈窗內容:', data);
+    
     // 清空現有內容
     popupContent.innerHTML = '';
     
-    // 根據SDK返回的數據結構渲染內容
-    if (data.image_url) {
+    // 根據文檔3.1的數據結構渲染內容
+    if (data.image_url || data.imageUrl) {
         // 如果有圖片URL，創建圖片元素
+        const imageUrl = data.image_url || data.imageUrl;
         const img = document.createElement('img');
-        img.src = data.image_url;
-        img.alt = data.title || '彈窗廣告';
+        img.src = imageUrl;
+        img.alt = data.title || data.alt || '彈窗廣告';
         img.style.width = '100%';
         img.style.height = 'auto';
         img.style.display = 'block';
+        img.style.maxHeight = '80vh';
+        img.style.objectFit = 'contain';
         
         // 添加點擊事件
-        if (data.click_url) {
+        const clickUrl = data.click_url || data.clickUrl || data.link_url;
+        if (clickUrl) {
             img.style.cursor = 'pointer';
             img.onclick = () => {
-                handlePopupClick(data);
+                handlePopupClick({
+                    click_url: clickUrl,
+                    title: data.title,
+                    resource_id: resourceId
+                });
             };
         }
         
         // 添加載入錯誤處理
         img.onerror = () => {
-            console.error('彈窗圖片載入失敗:', data.image_url);
+            console.error('彈窗圖片載入失敗:', imageUrl);
             showDefaultPopup();
         };
         
+        // 添加載入成功處理
+        img.onload = () => {
+            console.log('彈窗圖片載入成功:', imageUrl);
+        };
+        
         popupContent.appendChild(img);
-    } else if (data.html_content) {
+        
+    } else if (data.html_content || data.htmlContent) {
         // 如果有HTML內容，直接插入
-        popupContent.innerHTML = data.html_content;
+        const htmlContent = data.html_content || data.htmlContent;
+        popupContent.innerHTML = htmlContent;
+        
+        // 為HTML內容中的連結添加點擊事件
+        const links = popupContent.querySelectorAll('a');
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                handlePopupClick({
+                    click_url: link.href,
+                    title: data.title,
+                    resource_id: resourceId
+                });
+            });
+        });
+        
+    } else if (data.content) {
+        // 如果有純文本內容
+        const contentDiv = document.createElement('div');
+        contentDiv.style.padding = '40px';
+        contentDiv.style.textAlign = 'center';
+        contentDiv.style.background = 'linear-gradient(135deg, #FFD700, #FFA500)';
+        contentDiv.style.color = '#000';
+        contentDiv.style.borderRadius = '15px';
+        
+        contentDiv.innerHTML = `
+            <h2 style="margin-bottom: 20px; font-size: 2rem;">${data.title || '中信兄弟商城'}</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">${data.content}</p>
+            ${data.click_url || data.clickUrl ? `
+                <button onclick="handlePopupClick({click_url: '${data.click_url || data.clickUrl}', title: '${data.title}', resource_id: '${resourceId}'})" 
+                        style="background: #000; color: #fff; padding: 12px 30px; border: none; border-radius: 25px; font-size: 1.1rem; cursor: pointer; margin-top: 10px;">
+                    ${data.button_text || data.buttonText || '立即查看'}
+                </button>
+            ` : ''}
+        `;
+        
+        popupContent.appendChild(contentDiv);
+        
+    } else if (data.template_type || data.templateType) {
+        // 如果有模板類型，根據模板渲染
+        renderTemplateContent(data);
+        
     } else {
         // 如果沒有有效內容，顯示預設彈窗
+        console.warn('未識別的數據格式:', data);
         showDefaultPopup();
     }
+}
+
+// 根據模板類型渲染內容
+function renderTemplateContent(data) {
+    const templateType = data.template_type || data.templateType;
+    
+    switch (templateType) {
+        case 'banner':
+            renderBannerTemplate(data);
+            break;
+        case 'promotion':
+            renderPromotionTemplate(data);
+            break;
+        case 'news':
+            renderNewsTemplate(data);
+            break;
+        default:
+            console.warn('未知的模板類型:', templateType);
+            showDefaultPopup();
+    }
+}
+
+// 橫幅模板
+function renderBannerTemplate(data) {
+    const bannerDiv = document.createElement('div');
+    bannerDiv.style.position = 'relative';
+    bannerDiv.style.width = '100%';
+    bannerDiv.style.height = '400px';
+    bannerDiv.style.background = `url('${data.background_image || data.backgroundImage}') center/cover`;
+    bannerDiv.style.borderRadius = '15px';
+    bannerDiv.style.overflow = 'hidden';
+    
+    const overlay = document.createElement('div');
+    overlay.style.position = 'absolute';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.right = '0';
+    overlay.style.bottom = '0';
+    overlay.style.background = 'rgba(0,0,0,0.3)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.color = '#fff';
+    overlay.style.textAlign = 'center';
+    
+    overlay.innerHTML = `
+        <div>
+            <h2 style="font-size: 2.5rem; margin-bottom: 20px;">${data.title || '中信兄弟'}</h2>
+            <p style="font-size: 1.3rem; margin-bottom: 30px;">${data.subtitle || data.sub_title || ''}</p>
+            ${data.button_text || data.buttonText ? `
+                <button onclick="handlePopupClick({click_url: '${data.click_url || data.clickUrl}', title: '${data.title}', resource_id: '${resourceId}'})" 
+                        style="background: #FFD700; color: #000; padding: 15px 30px; border: none; border-radius: 30px; font-size: 1.1rem; cursor: pointer; font-weight: bold;">
+                    ${data.button_text || data.buttonText}
+                </button>
+            ` : ''}
+        </div>
+    `;
+    
+    bannerDiv.appendChild(overlay);
+    popupContent.appendChild(bannerDiv);
+}
+
+// 促銷模板
+function renderPromotionTemplate(data) {
+    const promoDiv = document.createElement('div');
+    promoDiv.style.padding = '40px';
+    promoDiv.style.textAlign = 'center';
+    promoDiv.style.background = 'linear-gradient(135deg, #FFD700, #FFA500)';
+    promoDiv.style.color = '#000';
+    promoDiv.style.borderRadius = '15px';
+    
+    promoDiv.innerHTML = `
+        <div style="background: rgba(255,255,255,0.9); padding: 30px; border-radius: 15px; margin: 20px 0;">
+            <h2 style="margin-bottom: 15px; font-size: 2rem;">${data.title || '限時優惠'}</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">${data.description || data.desc || ''}</p>
+            <div style="font-size: 2rem; font-weight: bold; color: #ff4444; margin: 20px 0;">
+                ${data.discount || data.discount_text || '8折優惠'}
+            </div>
+            <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
+                ${data.valid_time || data.validTime || '活動時間有限，立即搶購！'}
+            </p>
+            <button onclick="handlePopupClick({click_url: '${data.click_url || data.clickUrl}', title: '${data.title}', resource_id: '${resourceId}'})" 
+                    style="background: #000; color: #fff; padding: 15px 40px; border: none; border-radius: 30px; font-size: 1.2rem; cursor: pointer; font-weight: bold;">
+                ${data.button_text || data.buttonText || '立即搶購'}
+            </button>
+        </div>
+    `;
+    
+    popupContent.appendChild(promoDiv);
+}
+
+// 新聞模板
+function renderNewsTemplate(data) {
+    const newsDiv = document.createElement('div');
+    newsDiv.style.padding = '30px';
+    newsDiv.style.background = '#fff';
+    newsDiv.style.borderRadius = '15px';
+    newsDiv.style.border = '2px solid #FFD700';
+    
+    newsDiv.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #333; margin-bottom: 10px; font-size: 1.8rem;">${data.title || '最新消息'}</h2>
+            <div style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
+                ${data.publish_time || data.publishTime || new Date().toLocaleDateString()}
+            </div>
+        </div>
+        <div style="color: #333; line-height: 1.6; margin-bottom: 20px;">
+            ${data.content || data.description || data.desc || ''}
+        </div>
+        ${data.click_url || data.clickUrl ? `
+            <div style="text-align: center;">
+                <button onclick="handlePopupClick({click_url: '${data.click_url || data.clickUrl}', title: '${data.title}', resource_id: '${resourceId}'})" 
+                        style="background: #FFD700; color: #000; padding: 10px 25px; border: none; border-radius: 20px; font-size: 1rem; cursor: pointer;">
+                    ${data.button_text || data.buttonText || '查看詳情'}
+                </button>
+            </div>
+        ` : ''}
+    `;
+    
+    popupContent.appendChild(newsDiv);
 }
 
 // 顯示預設彈窗
@@ -381,10 +604,33 @@ popupOverlay.addEventListener('click', function(e) {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && popupShown) {
         closePopup();
-
-
     }
 });
+
+// 調試功能：手動觸發彈窗測試
+window.testPopup = function() {
+    console.log('手動觸發彈窗測試');
+    loadPopupContent();
+};
+
+// 調試功能：清除彈窗顯示記錄
+window.clearPopupRecord = function() {
+    localStorage.removeItem('popupShownToday');
+    console.log('已清除彈窗顯示記錄，下次訪問將重新顯示彈窗');
+};
+
+// 調試功能：檢查SDK狀態
+window.checkSDKStatus = function() {
+    console.log('SDK狀態檢查:', {
+        sdk: typeof sdk,
+        sdkMethods: sdk ? Object.getOwnPropertyNames(sdk) : 'SDK未定義',
+        getResource: sdk && typeof sdk.getResource,
+        resourceId: resourceId,
+        popupContent: !!popupContent,
+        popupOverlay: !!popupOverlay
+    });
+};
+
 
 // 顯示商品
 function displayProducts(productsToShow) {
