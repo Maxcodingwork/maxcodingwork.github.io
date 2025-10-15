@@ -174,6 +174,218 @@ document.addEventListener('DOMContentLoaded', function() {
     initPopup();
 });
 
+
+
+// ==================== 彈窗功能 ====================
+
+// 初始化彈窗
+function initPopup() {
+    // 檢查是否已經顯示過彈窗（使用localStorage記錄）
+    const popupShownToday = localStorage.getItem('popupShownToday');
+    const today = new Date().toDateString();
+    
+    if (popupShownToday !== today) {
+        // 延遲2秒後顯示彈窗，讓頁面完全載入
+        setTimeout(() => {
+            loadPopupContent();
+        }, 2000);
+    }
+}
+
+// 通過SDK載入彈窗內容
+function loadPopupContent() {
+    try {
+        // 根據文檔3.2節，使用正確的SDK調用方式
+        sdk.getResourceList(resourceId, {
+            // 請求參數
+            position: 'popup',
+            page: 'homepage',
+            userAgent: navigator.userAgent,
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height,
+            timestamp: Date.now()
+        }).then(response => {
+            console.log('SDK彈窗響應:', response);
+            
+            // 根據文檔3.2節的響應結構處理
+            if (response && response.success && response.data) {
+                popupData = response.data;
+                
+                // 記錄彈窗曝光事件
+                window.collectEvent('popup_exposure', {
+                    resource_id: resourceId,
+                    popup_type: 'sdk_popup',
+                    timestamp: Date.now(),
+                    response_data: response.data
+                });
+                
+                // 執行自渲染
+                renderPopupContent(popupData);
+                showPopup();
+                
+            } else if (response && response.success === false) {
+                console.warn('SDK返回失敗狀態:', response.message);
+                showDefaultPopup();
+            } else {
+                // 如果SDK沒有返回內容，使用預設彈窗
+                showDefaultPopup();
+            }
+        }).catch(error => {
+            console.error('SDK彈窗請求失敗:', error);
+            // 記錄錯誤事件
+            window.collectEvent('popup_error', {
+                resource_id: resourceId,
+                error_message: error.message,
+                timestamp: Date.now()
+            });
+            // 請求失敗時顯示預設彈窗
+            showDefaultPopup();
+        });
+    } catch (error) {
+        console.error('彈窗初始化錯誤:', error);
+        showDefaultPopup();
+    }
+}
+
+// 自渲染彈窗內容
+function renderPopupContent(data) {
+    if (!data || !popupContent) return;
+    
+    // 清空現有內容
+    popupContent.innerHTML = '';
+    
+    // 根據SDK返回的數據結構渲染內容
+    if (data.image_url) {
+        // 如果有圖片URL，創建圖片元素
+        const img = document.createElement('img');
+        img.src = data.image_url;
+        img.alt = data.title || '彈窗廣告';
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        img.style.display = 'block';
+        
+        // 添加點擊事件
+        if (data.click_url) {
+            img.style.cursor = 'pointer';
+            img.onclick = () => {
+                handlePopupClick(data);
+            };
+        }
+        
+        // 添加載入錯誤處理
+        img.onerror = () => {
+            console.error('彈窗圖片載入失敗:', data.image_url);
+            showDefaultPopup();
+        };
+        
+        popupContent.appendChild(img);
+    } else if (data.html_content) {
+        // 如果有HTML內容，直接插入
+        popupContent.innerHTML = data.html_content;
+    } else {
+        // 如果沒有有效內容，顯示預設彈窗
+        showDefaultPopup();
+    }
+}
+
+// 顯示預設彈窗
+function showDefaultPopup() {
+    if (!popupContent) return;
+    
+    popupContent.innerHTML = `
+        <div style="padding: 40px; text-align: center; background: linear-gradient(135deg, #FFD700, #FFA500); color: #000;">
+            <i class="fas fa-gift" style="font-size: 4rem; margin-bottom: 20px;"></i>
+            <h2 style="margin-bottom: 15px; font-size: 2rem;">歡迎來到中信兄弟商城！</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">新會員專享優惠</p>
+            <div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; margin: 20px 0;">
+                <h3 style="color: #000; margin-bottom: 10px;">限時優惠</h3>
+                <p style="color: #333; font-size: 1.1rem;">全館商品8折優惠</p>
+                <p style="color: #666; font-size: 0.9rem;">優惠碼：WELCOME20</p>
+            </div>
+            <button onclick="handlePopupClick({click_url: '#products'})" 
+                    style="background: #000; color: #fff; padding: 12px 30px; border: none; border-radius: 25px; font-size: 1.1rem; cursor: pointer; margin-top: 10px;">
+                立即選購
+            </button>
+        </div>
+    `;
+    
+    showPopup();
+}
+
+// 顯示彈窗
+function showPopup() {
+    if (!popupOverlay || popupShown) return;
+    
+    popupOverlay.classList.add('show');
+    popupShown = true;
+    document.body.style.overflow = 'hidden';
+    
+    // 記錄彈窗顯示
+    localStorage.setItem('popupShownToday', new Date().toDateString());
+}
+
+// 關閉彈窗
+function closePopup() {
+    if (!popupOverlay) return;
+    
+    popupOverlay.classList.remove('show');
+    document.body.style.overflow = 'auto';
+    
+    // 記錄彈窗關閉事件
+    window.collectEvent('popup_close', {
+        resource_id: resourceId,
+        popup_type: 'sdk_popup',
+        timestamp: Date.now()
+    });
+}
+
+// 處理彈窗點擊事件
+function handlePopupClick(data) {
+    // 記錄點擊事件
+    window.collectEvent('popup_click', {
+        resource_id: resourceId,
+        click_url: data.click_url,
+        popup_type: 'sdk_popup',
+        timestamp: Date.now()
+    });
+    
+    // 關閉彈窗
+    closePopup();
+    
+    // 如果有跳轉URL，進行跳轉
+    if (data.click_url) {
+        if (data.click_url.startsWith('http')) {
+            // 外部連結
+            window.open(data.click_url, '_blank');
+        } else if (data.click_url.startsWith('#')) {
+            // 頁面內錨點
+            const target = document.querySelector(data.click_url);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
+        } else {
+            // 其他情況，可能需要在同一個標籤頁打開
+            window.location.href = data.click_url;
+        }
+    }
+}
+
+// 點擊遮罩關閉彈窗
+popupOverlay.addEventListener('click', function(e) {
+    if (e.target === popupOverlay) {
+        closePopup();
+    }
+});
+
+// ESC鍵關閉彈窗
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && popupShown) {
+        closePopup();
+
+
+    }
+});
+
 // 顯示商品
 function displayProducts(productsToShow) {
     productsGrid.innerHTML = '';
@@ -457,211 +669,3 @@ function lazyLoadImages() {
 
 // 初始化懶加載
 document.addEventListener('DOMContentLoaded', lazyLoadImages);
-
-// ==================== 彈窗功能 ====================
-
-// 初始化彈窗
-function initPopup() {
-    // 檢查是否已經顯示過彈窗（使用localStorage記錄）
-    const popupShownToday = localStorage.getItem('popupShownToday');
-    const today = new Date().toDateString();
-    
-    if (popupShownToday !== today) {
-        // 延遲2秒後顯示彈窗，讓頁面完全載入
-        setTimeout(() => {
-            loadPopupContent();
-        }, 2000);
-    }
-}
-
-// 通過SDK載入彈窗內容
-function loadPopupContent() {
-    try {
-        // 根據文檔3.2節，使用正確的SDK調用方式
-        sdk.getResourceList(resourceId, {
-            // 請求參數
-            position: 'popup',
-            page: 'homepage',
-            userAgent: navigator.userAgent,
-            screenWidth: window.screen.width,
-            screenHeight: window.screen.height,
-            timestamp: Date.now()
-        }).then(response => {
-            console.log('SDK彈窗響應:', response);
-            
-            // 根據文檔3.2節的響應結構處理
-            if (response && response.success && response.data) {
-                popupData = response.data;
-                
-                // 記錄彈窗曝光事件
-                window.collectEvent('popup_exposure', {
-                    resource_id: resourceId,
-                    popup_type: 'sdk_popup',
-                    timestamp: Date.now(),
-                    response_data: response.data
-                });
-                
-                // 執行自渲染
-                renderPopupContent(popupData);
-                showPopup();
-                
-            } else if (response && response.success === false) {
-                console.warn('SDK返回失敗狀態:', response.message);
-                showDefaultPopup();
-            } else {
-                // 如果SDK沒有返回內容，使用預設彈窗
-                showDefaultPopup();
-            }
-        }).catch(error => {
-            console.error('SDK彈窗請求失敗:', error);
-            // 記錄錯誤事件
-            window.collectEvent('popup_error', {
-                resource_id: resourceId,
-                error_message: error.message,
-                timestamp: Date.now()
-            });
-            // 請求失敗時顯示預設彈窗
-            showDefaultPopup();
-        });
-    } catch (error) {
-        console.error('彈窗初始化錯誤:', error);
-        showDefaultPopup();
-    }
-}
-
-// 自渲染彈窗內容
-function renderPopupContent(data) {
-    if (!data || !popupContent) return;
-    
-    // 清空現有內容
-    popupContent.innerHTML = '';
-    
-    // 根據SDK返回的數據結構渲染內容
-    if (data.image_url) {
-        // 如果有圖片URL，創建圖片元素
-        const img = document.createElement('img');
-        img.src = data.image_url;
-        img.alt = data.title || '彈窗廣告';
-        img.style.width = '100%';
-        img.style.height = 'auto';
-        img.style.display = 'block';
-        
-        // 添加點擊事件
-        if (data.click_url) {
-            img.style.cursor = 'pointer';
-            img.onclick = () => {
-                handlePopupClick(data);
-            };
-        }
-        
-        // 添加載入錯誤處理
-        img.onerror = () => {
-            console.error('彈窗圖片載入失敗:', data.image_url);
-            showDefaultPopup();
-        };
-        
-        popupContent.appendChild(img);
-    } else if (data.html_content) {
-        // 如果有HTML內容，直接插入
-        popupContent.innerHTML = data.html_content;
-    } else {
-        // 如果沒有有效內容，顯示預設彈窗
-        showDefaultPopup();
-    }
-}
-
-// 顯示預設彈窗
-function showDefaultPopup() {
-    if (!popupContent) return;
-    
-    popupContent.innerHTML = `
-        <div style="padding: 40px; text-align: center; background: linear-gradient(135deg, #FFD700, #FFA500); color: #000;">
-            <i class="fas fa-gift" style="font-size: 4rem; margin-bottom: 20px;"></i>
-            <h2 style="margin-bottom: 15px; font-size: 2rem;">歡迎來到中信兄弟商城！</h2>
-            <p style="font-size: 1.2rem; margin-bottom: 20px;">新會員專享優惠</p>
-            <div style="background: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; margin: 20px 0;">
-                <h3 style="color: #000; margin-bottom: 10px;">限時優惠</h3>
-                <p style="color: #333; font-size: 1.1rem;">全館商品8折優惠</p>
-                <p style="color: #666; font-size: 0.9rem;">優惠碼：WELCOME20</p>
-            </div>
-            <button onclick="handlePopupClick({click_url: '#products'})" 
-                    style="background: #000; color: #fff; padding: 12px 30px; border: none; border-radius: 25px; font-size: 1.1rem; cursor: pointer; margin-top: 10px;">
-                立即選購
-            </button>
-        </div>
-    `;
-    
-    showPopup();
-}
-
-// 顯示彈窗
-function showPopup() {
-    if (!popupOverlay || popupShown) return;
-    
-    popupOverlay.classList.add('show');
-    popupShown = true;
-    document.body.style.overflow = 'hidden';
-    
-    // 記錄彈窗顯示
-    localStorage.setItem('popupShownToday', new Date().toDateString());
-}
-
-// 關閉彈窗
-function closePopup() {
-    if (!popupOverlay) return;
-    
-    popupOverlay.classList.remove('show');
-    document.body.style.overflow = 'auto';
-    
-    // 記錄彈窗關閉事件
-    window.collectEvent('popup_close', {
-        resource_id: resourceId,
-        popup_type: 'sdk_popup',
-        timestamp: Date.now()
-    });
-}
-
-// 處理彈窗點擊事件
-function handlePopupClick(data) {
-    // 記錄點擊事件
-    window.collectEvent('popup_click', {
-        resource_id: resourceId,
-        click_url: data.click_url,
-        popup_type: 'sdk_popup',
-        timestamp: Date.now()
-    });
-    
-    // 關閉彈窗
-    closePopup();
-    
-    // 如果有跳轉URL，進行跳轉
-    if (data.click_url) {
-        if (data.click_url.startsWith('http')) {
-            // 外部連結
-            window.open(data.click_url, '_blank');
-        } else if (data.click_url.startsWith('#')) {
-            // 頁面內錨點
-            const target = document.querySelector(data.click_url);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth' });
-            }
-        } else {
-            // 其他情況，可能需要在同一個標籤頁打開
-            window.location.href = data.click_url;
-        }
-    }
-}
-
-// 點擊遮罩關閉彈窗
-popupOverlay.addEventListener('click', function(e) {
-    if (e.target === popupOverlay) {
-        closePopup();
-    }
-});
-
-// ESC鍵關閉彈窗
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && popupShown) {
-        closePopup();
-    }
-});
