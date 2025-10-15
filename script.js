@@ -478,7 +478,7 @@ function initPopup() {
 function loadPopupContent() {
     try {
         // 根據文檔3.2節，使用正確的SDK調用方式
-        sdk.getResource(resourceId, {
+        sdk.getResourceList(resourceId, {
             // 請求參數
             position: 'popup',
             page: 'homepage',
