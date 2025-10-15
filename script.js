@@ -136,6 +136,8 @@ const sdk = new GmpResourceSDK({
 
 
 const resourceId = '7606814bd9d27b3fd5b191448fa61516';
+// 後備 API Host（與資源位 SDK 同源）
+const GMP_API_HOST = 'https://ma.altatech.tw';
 
 // 彈窗相關變數
 let popupData = null;
@@ -208,8 +210,8 @@ function loadPopupContent() {
         // 根據文檔3.2節，使用正確的SDK調用方式
         // 檢查SDK是否已初始化
         if (!sdk || typeof sdk.getResource !== 'function') {
-            console.error('SDK未正確初始化或getResource方法不存在');
-            showDefaultPopup();
+            console.warn('SDK未正確初始化或getResource方法不存在，改用HTTP後備請求');
+            fetchResourceSpaceDefaultMaterial();
             return;
         }
         
@@ -283,11 +285,75 @@ function loadPopupContent() {
                 timestamp: Date.now()
             });
             
-            // 請求失敗時顯示預設彈窗
-            showDefaultPopup();
+            // 請求失敗時嘗試後備HTTP請求
+            fetchResourceSpaceDefaultMaterial();
         });
     } catch (error) {
         console.error('彈窗初始化錯誤:', error);
+        // 發生異常時嘗試後備HTTP請求
+        fetchResourceSpaceDefaultMaterial();
+    }
+}
+
+// 後備：透過 HTTP 調用 getResourceSpaceDefaultMaterial 並自渲染
+async function fetchResourceSpaceDefaultMaterial() {
+    try {
+        const url = `${GMP_API_HOST}/gmp/openapi/v3/resource_space/getResourceSpaceDefaultMaterial`;
+        console.log('後備HTTP請求:', url);
+        const resp = await fetch(url, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'omit'
+        });
+        if (!resp.ok) {
+            console.error('HTTP請求失敗，狀態碼:', resp.status);
+            showDefaultPopup();
+            return;
+        }
+        const json = await resp.json();
+        console.log('HTTP回應資料:', json);
+        if (!json || (json.code !== 0) || !json.data || !Array.isArray(json.data.full_data)) {
+            console.warn('HTTP回應結構不符合預期');
+            showDefaultPopup();
+            return;
+        }
+        const match = json.data.full_data.find(item => item && item.key === resourceId);
+        if (!match || !Array.isArray(match.customer_material_list) || match.customer_material_list.length === 0) {
+            console.warn('找不到對應資源位或素材列表為空');
+            showDefaultPopup();
+            return;
+        }
+        const material = match.customer_material_list[0];
+        // 對齊自渲染結構
+        const mapped = {
+            image_url: material.image_url,
+            click_url: material.navigate_url,
+            title: material.text || '活動推薦',
+            extra: material.extra || {},
+            material_id: material.material_id,
+            frame_id: material.frame_id,
+            type: material.type
+        };
+
+        // 上報曝光事件
+        window.collectEvent('popup_exposure', {
+            resource_id: resourceId,
+            popup_type: 'http_fallback',
+            timestamp: Date.now(),
+            material_id: material.material_id,
+            frame_id: material.frame_id
+        });
+
+        renderPopupContent(mapped);
+        showPopup();
+    } catch (err) {
+        console.error('後備HTTP請求異常:', err);
+        window.collectEvent('popup_error', {
+            resource_id: resourceId,
+            error_message: err.message,
+            error_type: err.name,
+            timestamp: Date.now()
+        });
         showDefaultPopup();
     }
 }
