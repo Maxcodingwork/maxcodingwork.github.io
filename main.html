@@ -1,26 +1,213 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JS Modal Demo</title>
+    <title>中信育樂商城 - 中信兄弟官方商品</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/gmp-resource-sdk@0.0.2-alpha.17/dist/gmp-resource-sdk.js"></script>
 </head>
 <body>
+    <!-- 導航欄 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <div class="logo-fallback" style="display: flex; align-items: center; height: 40px; background: linear-gradient(135deg, #FFD700, #FFA500); padding: 0 15px; border-radius: 8px; color: #000; font-weight: bold; font-size: 1.2rem;">
+                    <i class="fas fa-baseball-ball" style="margin-right: 8px;"></i>
+                    中信兄弟
+                </div>
+            </div>
+            <div class="nav-menu">
+                <a href="#home" class="nav-link">首頁</a>
+                <a href="#products" class="nav-link">商品</a>
+                <a href="#news" class="nav-link">最新消息</a>
+                <a href="#about" class="nav-link">關於我們</a>
+            </div>
+            <div class="nav-actions">
+                <div class="search-box">
+                    <input type="text" placeholder="搜尋商品..." id="searchInput">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="cart-icon" onclick="toggleCart()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count" id="cartCount">0</span>
+                </div>
+                <div class="user-actions">
+                    <a href="#" class="login-btn">會員登入</a>
+                    <a href="#" class="register-btn">加入會員</a>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-    <button id="open-modal-btn">打開彈窗</button>
+    <!-- 主橫幅 -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>中信兄弟官方商城</h1>
+            <p>支持球隊，展現兄弟精神</p>
+            <button class="cta-button" onclick="scrollToProducts()">立即選購</button>
+        </div>
+        <div class="hero-image">
+            <div class="hero-fallback" style="width: 100%; max-width: 600px; height: 400px; background: linear-gradient(135deg, #FFD700, #FFA500); border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #000; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                <i class="fas fa-baseball-ball" style="font-size: 4rem; margin-bottom: 20px;"></i>
+                <h2 style="font-size: 2rem; margin-bottom: 10px;">中信兄弟</h2>
+                <p style="font-size: 1.2rem; opacity: 0.8;">Brothers Baseball Team</p>
+            </div>
+        </div>
+    </section>
 
-    <div id="modal" class="modal">
-        <div class="modal-overlay"></div>
-        
-        <div class="modal-content">
-            <button class="close-btn">&times;</button> 
-            <h2>這是一個彈窗</h2>
-            <p>這裡是彈窗的內容。你可以放任何東西，例如文字、圖片或表單。</p>
-            <img src="京都地鐵.png" alt="京都地鐵">
+    <!-- 商品分類 -->
+    <section class="categories">
+        <div class="container">
+            <h2>商品分類</h2>
+            <div class="category-grid">
+                <div class="category-card" onclick="filterProducts('jerseys')">
+                    <i class="fas fa-tshirt"></i>
+                    <h3>球衣</h3>
+                </div>
+                <div class="category-card" onclick="filterProducts('apparel')">
+                    <i class="fas fa-vest"></i>
+                    <h3>服飾</h3>
+                </div>
+                <div class="category-card" onclick="filterProducts('accessories')">
+                    <i class="fas fa-baseball"></i>
+                    <h3>配件</h3>
+                </div>
+                <div class="category-card" onclick="filterProducts('merchandise')">
+                    <i class="fas fa-gift"></i>
+                    <h3>週邊商品</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 熱銷商品 -->
+    <section class="featured-products" id="products">
+        <div class="container">
+            <h2>熱銷商品</h2>
+            <div class="product-filters">
+                <button class="filter-btn active" onclick="filterProducts('all')">全部商品</button>
+                <button class="filter-btn" onclick="filterProducts('jerseys')">球衣</button>
+                <button class="filter-btn" onclick="filterProducts('apparel')">服飾</button>
+                <button class="filter-btn" onclick="filterProducts('accessories')">配件</button>
+                <button class="filter-btn" onclick="filterProducts('merchandise')">週邊商品</button>
+            </div>
+            <div class="products-grid" id="productsGrid">
+                <!-- 商品將通過JavaScript動態生成 -->
+            </div>
+        </div>
+    </section>
+
+    <!-- 最新消息 -->
+    <section class="news" id="news">
+        <div class="container">
+            <h2>最新消息</h2>
+            <div class="news-grid">
+                <div class="news-card">
+                    <div class="news-date">2025/01/15</div>
+                    <h3>2025年新球季商品預購開始</h3>
+                    <p>全新設計的球衣和週邊商品現已開放預購，支持球隊從現在開始！</p>
+                </div>
+                <div class="news-card">
+                    <div class="news-date">2025/01/10</div>
+                    <h3>冬季商品限時優惠</h3>
+                    <p>保暖外套、長袖球衣等冬季商品全面8折優惠，數量有限！</p>
+                </div>
+                <div class="news-card">
+                    <div class="news-date">2025/01/05</div>
+                    <h3>會員專屬優惠活動</h3>
+                    <p>加入會員即可享受專屬折扣和優先購買權，立即註冊！</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 購物車側邊欄 -->
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header">
+            <h3>購物車</h3>
+            <button class="close-cart" onclick="toggleCart()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <!-- 購物車商品將通過JavaScript動態生成 -->
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>總計: NT$ <span id="cartTotal">0</span></span>
+            </div>
+            <button class="checkout-btn" onclick="checkout()">結帳</button>
         </div>
     </div>
+
+    <!-- 購物車遮罩 -->
+    <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+
+    <!-- 彈窗 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h3>歡迎來到中信兄弟商城</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="modal-image">
+                    <img id="modalImage" src="" alt="廣告圖片" style="width: 100%; height: auto; border-radius: 10px;">
+                </div>
+                <div class="modal-text">
+                    <p>感謝您訪問中信兄弟官方商城！</p>
+                    <p>我們提供最優質的球隊商品，讓您展現對球隊的支持。</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" onclick="closeModal()">開始購物</button>
+                <button class="modal-btn secondary" onclick="closeModal()">稍後再說</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁腳 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>中信育樂</h4>
+                    <p>中國信託育樂股份有限公司</p>
+                    <p>統編：91035675</p>
+                </div>
+                <div class="footer-section">
+                    <h4>客戶服務</h4>
+                    <ul>
+                        <li><a href="#">客服問題</a></li>
+                        <li><a href="#">訂單查詢</a></li>
+                        <li><a href="#">退換貨政策</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>關於我們</h4>
+                    <ul>
+                        <li><a href="#">中信兄弟官網</a></li>
+                        <li><a href="#">中信兄弟粉絲團</a></li>
+                        <li><a href="#">業務合作</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>法律條款</h4>
+                    <ul>
+                        <li><a href="#">網站使用條款</a></li>
+                        <li><a href="#">隱私權政策</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 中國信託育樂股份有限公司 - 版權所有</p>
+            </div>
+        </div>
+    </footer>
 
     <script src="script.js"></script>
 </body>
