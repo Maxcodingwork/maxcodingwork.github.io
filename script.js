@@ -11,6 +11,22 @@ const sdk = new GmpResourceSDK({
 sdk.getResourceList(['7606814bd9d27b3fd5b191448fa61516']).then((resourceList) => {
     // 根据返回的资源位列表进行自渲染工作
     // 回调中的resourceList为ResourceData[]类型，详见资源位数据模型3.1.1
+    
+    // 從回應中取出 image_url
+    if (resourceList && resourceList.length > 0) {
+        const resourceData = resourceList[0];
+        if (resourceData.customer_material_list && resourceData.customer_material_list.length > 0) {
+            const material = resourceData.customer_material_list[0];
+            const imageUrl = material.image_url;
+            
+            // 將圖片 URL 設定到彈窗中的圖片元素
+            const modalImage = document.querySelector('#modal img');
+            if (modalImage && imageUrl) {
+                modalImage.src = imageUrl;
+                modalImage.alt = '廣告圖片'; // 設定替代文字
+            }
+        }
+    }
 });
 
 
