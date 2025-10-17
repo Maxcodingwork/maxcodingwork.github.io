@@ -128,11 +128,22 @@ sdk.getResourceList(['7606814bd9d27b3fd5b191448fa61516']).then((resourceList) =>
         if (resourceData.customer_material_list && resourceData.customer_material_list.length > 0) {
             const material = resourceData.customer_material_list[0];
             const imageUrl = material.image_url;
+            const navigateUrl = material.navigate_url;
             
             // 將圖片 URL 設定到彈窗中的圖片元素
             if (modalImage && imageUrl) {
                 modalImage.src = imageUrl;
                 modalImage.alt = '廣告圖片'; // 設定替代文字
+                // 若有跳轉連結，設定點擊行為
+                if (navigateUrl) {
+                    modalImage.style.cursor = 'pointer';
+                    modalImage.onclick = function() {
+                        window.open(navigateUrl, '_blank');
+                    };
+                } else {
+                    modalImage.style.cursor = 'default';
+                    modalImage.onclick = null;
+                }
                 
                 // 圖片載入完成後檢查是否需要顯示彈窗
                 modalImage.onload = function() {
