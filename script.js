@@ -5,7 +5,7 @@ const products = [
         name: "經典黃衫中文球衣",
         price: 1980,
         category: "jerseys",
-        image: "https://picsum.photos/300/250?random=1",
+        image: "https://img.brothers-shop.com.tw/a/23/083/23083144540547805abb9d.jpg",
         fallbackIcon: "fas fa-tshirt",
         description: "中信兄弟經典黃衫球衣，展現球隊精神"
     },
@@ -14,7 +14,7 @@ const products = [
         name: "小象側背包",
         price: 500,
         category: "accessories",
-        image: "https://picsum.photos/300/250?random=2",
+        image: "https://img.brothers-shop.com.tw/a/23/261/2326113494764128808368.jpg",
         fallbackIcon: "fas fa-shopping-bag",
         description: "可愛小象造型側背包，實用又時尚"
     },
@@ -23,7 +23,7 @@ const products = [
         name: "小象手偶",
         price: 600,
         category: "merchandise",
-        image: "https://picsum.photos/300/250?random=3",
+        image: "https://img.brothers-shop.com.tw/a/23/222/2322218191371968761579.jpg",
         fallbackIcon: "fas fa-hand-paper",
         description: "萌趣小象手偶，陪伴您觀賽時光"
     },
@@ -32,7 +32,7 @@ const products = [
         name: "Brothers網眼購物提袋",
         price: 350,
         category: "accessories",
-        image: "https://picsum.photos/300/250?random=4",
+        image: "https://img.brothers-shop.com.tw/a/25/181/25181123721487513b7c07.jpg",
         fallbackIcon: "fas fa-shopping-basket",
         description: "環保網眼購物提袋，輕便實用"
     },
@@ -41,7 +41,7 @@ const products = [
         name: "手繪肖像應援手燈",
         price: 400,
         category: "merchandise",
-        image: "https://picsum.photos/300/250?random=5",
+        image: "https://img.brothers-shop.com.tw/a/24/253/2425318144188007784bec.jpg",
         fallbackIcon: "fas fa-lightbulb",
         description: "手繪風格應援手燈，為球隊加油"
     },
@@ -50,7 +50,7 @@ const products = [
         name: "球衣包屁衣禮盒組",
         price: 1880,
         category: "apparel",
-        image: "https://picsum.photos/300/250?random=6",
+        image: "https://img.brothers-shop.com.tw/a/24/253/242531711335227254f663.jpg",
         fallbackIcon: "fas fa-gift",
         description: "可愛球衣包屁衣禮盒，送禮首選"
     },
@@ -68,7 +68,7 @@ const products = [
         name: "2025應援毛巾",
         price: 320,
         category: "merchandise",
-        image: "https://picsum.photos/300/250?random=8",
+        image: "https://img.brothers-shop.com.tw/500x500/25/204/252041537124135636048f.jpg",
         fallbackIcon: "fas fa-square",
         description: "2025年應援毛巾，觀賽必備"
     },
@@ -77,7 +77,7 @@ const products = [
         name: "棒球帽",
         price: 650,
         category: "accessories",
-        image: "https://picsum.photos/300/250?random=9",
+        image: "https://img.brothers-shop.com.tw/500x500/21/056/2105616280009027258a72.jpg",
         fallbackIcon: "fas fa-hat-cowboy",
         description: "經典棒球帽，遮陽又時尚"
     },
@@ -86,7 +86,7 @@ const products = [
         name: "Brothers Forever系列服飾",
         price: 1200,
         category: "apparel",
-        image: "https://picsum.photos/300/250?random=10",
+        image: "https://img.brothers-shop.com.tw/500x500/25/255/25255104445230932390e0.jpg",
         fallbackIcon: "fas fa-vest",
         description: "Brothers Forever系列限定服飾"
     },
@@ -95,7 +95,7 @@ const products = [
         name: "蠟筆小新聯名商品",
         price: 750,
         category: "merchandise",
-        image: "https://picsum.photos/300/250?random=11",
+        image: "https://img.brothers-shop.com.tw/500x500/25/104/2510419294833212620ed5.jpg",
         fallbackIcon: "fas fa-star",
         description: "蠟筆小新聯名限定商品"
     },
@@ -104,7 +104,7 @@ const products = [
         name: "2025美式復古學院服飾",
         price: 1580,
         category: "apparel",
-        image: "https://picsum.photos/300/250?random=12",
+        image: "https://img.brothers-shop.com.tw/500x500/25/083/25083200420342675ac4cc.jpg",
         fallbackIcon: "fas fa-graduation-cap",
         description: "2025年美式復古學院風格服飾"
     }
