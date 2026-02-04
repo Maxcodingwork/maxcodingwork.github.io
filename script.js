@@ -116,7 +116,11 @@ const sdk = new GmpResourceSDK({
     appid: 8, // number
     uuid: '578237563093909526', 
     idType: 'baseid', // 根據實際情況設置
-    webId: '578237563093909526'
+    webId: '578237563093909526',
+    onEvent: function(eventName, eventParams) {
+      eventParams.activity_id = '';
+      window.collectEvent(eventName, eventParams);
+    }
 });
 
 sdk.getResourceList(['7606814bd9d27b3fd5b191448fa61516']).then((resourceList) => {
