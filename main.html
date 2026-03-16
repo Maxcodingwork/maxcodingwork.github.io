@@ -11,7 +11,7 @@
     (function(win, export_obj) {
         win['TeaAnalyticsObject'] = export_obj;
         if (!win[export_obj]) {
-            function _collect() {
+            var _collect = function() {
                 _collect.q.push(arguments);
             }
             _collect.q = _collect.q || [];
