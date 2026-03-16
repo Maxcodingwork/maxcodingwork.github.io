@@ -1,3 +1,14 @@
+window.collectEvent('init', {
+  app_id: 10000047, // 参考2.1节获取，注意类型是number而非字符串
+  channel_domain: 'https://cdp.altatech.tw', // 设置私有化部署数据上送地址，参考2.2节获取
+  log: true, // true:开启日志，false:关闭日志
+  autotrack: true, // 全埋点开关，true开启，false关闭
+});
+// 此处可添加设置uuid、设置公共属性等代码
+window.collectEvent('start'); // 通知SDK设置完毕，可以真正开始发送事件了
+
+
+
 // 商品數據
 const products = [
     {
