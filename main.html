@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中信育樂商城 - 中信兄弟官方商品</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script>    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"> 
+    <script>
     //此段代码的作用是将SDK主文件未加载完成时，业务代码中调用的API依次进行放到数组q中缓存，等待SDK主文件加载完成后，再取出，并执行。
     (function(win, export_obj) {
-        win['LogAnalyticsObject'] = export_obj;
+        win['TeaAnalyticsObject'] = export_obj;
         if (!win[export_obj]) {
-            var _collect = function() {
+            function _collect() {
                 _collect.q.push(arguments);
             }
             _collect.q = _collect.q || [];
-            win[export_obj] = _collect;                
+            win[export_obj] = _collect;            
         }
         win[export_obj].l = +new Date();
     })(window, 'collectEvent');
@@ -23,6 +23,16 @@
     <script src="collect-rangers-v5.2.1.js"
     <script src="heatmap-core.2.2.0.js"
     <script src="visual-editor-rangers.js"
+    <script>
+        window.collectEvent('init', { 
+            app_id:10000047, 
+    	    channel_domain: 'https://cdp.altatech.tw',  // 替换为私有部署部署服务地址, 
+            disable_sdk_monitor:true, //用于禁止SDK启动后自身监控事件 onload 的上报
+            log: true, // true:开启日志，false:关闭日志
+            autotrack: true, // 全埋点开关，true开启，false关闭
+        });
+        window.collectEvent('start')
+    </script>
     <script src="https://unpkg.com/gmp-resource-sdk@0.0.2-alpha.17/dist/gmp-resource-sdk.js"></script>
 </head>
 <body>
